@@ -18,7 +18,7 @@ class QuestionGenerator:
             if question_type == "Multiplication":
                 self.question_range = [1, 20]
             elif question_type == "Division":
-                self.question_range = [1, 20]
+                self.question_range = [1, 15]
             elif question_type in ("Addition", "Subtraction"):
                 self.question_range = [1, 50]
 
@@ -26,7 +26,7 @@ class QuestionGenerator:
             if question_type == "Multiplication":
                 self.question_range = [10, 30]
             elif question_type == "Division":
-                self.question_range = [5, 50]
+                self.question_range = [5, 20]
             elif question_type in ("Addition", "Subtraction"):
                 self.question_range = [100, 500]
 
@@ -34,7 +34,7 @@ class QuestionGenerator:
             if question_type == "Multiplication":
                 self.question_range = [20, 50]
             elif question_type == "Division":
-                self.question_range = [10, 500]
+                self.question_range = [10, 100]
             elif question_type in ("Addition", "Subtraction"):
                 self.question_range = [1000, 5000]
 
@@ -45,11 +45,18 @@ class QuestionGenerator:
         """Generates mental math quesiton
 
         Returns:
-            list: Array storing numbers for question in the format (n1, n2, answer)
+            list: Sorted (ascending) array storing numbers for question in the format (n1, n2, answer).
         """
         if self.question_type in ("Addition", "Subtraction", "Multiplication"):
             n1, n2 = randint(*self.question_range), randint(*self.question_range)
-            return (n1, n2, n1 + n2)
+            if n2 < n1:
+                n1, n2 = n2, n1  # Make sure n1 < n2
+            if self.question_type == "Addition":
+                return (n1, n2, n1 + n2)
+            elif self.question_type == "Subtraction":
+                return (n2, n1, n2 - n1)
+            else:
+                return (n1, n2, n1 * n2)
 
         elif self.question_type == "Division":
             n1, helper = randint(*self.question_range), randint(*self.question_range)
