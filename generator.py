@@ -30,7 +30,7 @@ class QuestionGenerator:
             elif question_type in ("Addition", "Subtraction"):
                 self.question_range = [100, 500]
 
-        elif difficulty == "Medium":
+        elif difficulty == "Hard":
             if question_type == "Multiplication":
                 self.question_range = [20, 50]
             elif question_type == "Division":
@@ -48,18 +48,20 @@ class QuestionGenerator:
             list: Sorted (ascending) array storing numbers for question in the format (n1, n2, answer).
         """
         if self.question_type in ("Addition", "Subtraction", "Multiplication"):
-            n1, n2 = randint(*self.question_range), randint(*self.question_range)
+            n1, n2 = randint(
+                *self.question_range), randint(*self.question_range)
             if n2 < n1:
                 n1, n2 = n2, n1  # Make sure n1 < n2
             if self.question_type == "Addition":
                 return (n1, n2, n1 + n2)
             elif self.question_type == "Subtraction":
-                return (n2, n1, n2 - n1)
+                return (n1, n2, n2 - n1)
             else:
                 return (n1, n2, n1 * n2)
 
         elif self.question_type == "Division":
-            n1, helper = randint(*self.question_range), randint(*self.question_range)
+            n1, helper = randint(
+                *self.question_range), randint(*self.question_range)
             while n1 == 10 or helper == 10:  # We do not want very easy divisions
                 n1, helper = randint(*self.question_range), randint(
                     *self.question_range
