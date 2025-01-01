@@ -2,8 +2,12 @@ import customtkinter as ctk
 import random
 from generator import QuestionGenerator
 import time
-
-# *Implement data saving to csv
+import csv
+import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import pandas as pd
+from datetime import datetime
 
 
 class MentalMathApp:
@@ -55,7 +59,8 @@ class MentalMathApp:
         self.hard_button.grid(row=0, column=2, padx=10)
 
         # Question and Answer Widgets (hidden initially)
-        self.question_label = ctk.CTkLabel(root, text="", font=("Helvetica", 25))
+        self.question_label = ctk.CTkLabel(
+            root, text="", font=("Helvetica", 25))
 
         self.answer_entry = ctk.CTkEntry(root, font=("Helvetica", 14))
 
@@ -80,11 +85,18 @@ class MentalMathApp:
             font=("Helvetica", 12),
             command=self.change_modes,
         )
+
+        self.view_data_button = ctk.CTkButton(
+            root, text="View your data", font=("Helvetica", 12), command=self.view_data)
+        self.view_data_button.pack()
+
         self.change_modes_button.pack(pady=10)
         self.random_mode = True
 
-        self.operations = ["Addition", "Subtraction", "Division", "Multiplication"]
-        self.question_mode_select_box = ctk.CTkComboBox(root, values=self.operations)
+        self.operations = ["Addition", "Subtraction",
+                           "Division", "Multiplication"]
+        self.question_mode_select_box = ctk.CTkComboBox(
+            root, values=self.operations)
 
         self.root.bind("<Escape>", self.show_start_menu)
 
@@ -96,6 +108,62 @@ class MentalMathApp:
         elif self.random_mode:
             self.question_mode_select_box.pack_forget()
             self.change_modes_button.configure(text="Random")
+
+    def view_data(self):
+        self.change_modes_button.pack_forget()
+        self.question_mode_select_box.pack_forget()
+        self.difficulty_frame.pack_forget()
+        self.view_data_button.pack_forget()
+
+        df = pd.read_csv("results.csv")
+
+        operations, difficulties, times_taken, corects, times = df.iloc[:,
+                                                                        0], df.iloc[:, 1], df.iloc[:, 2], df.iloc[:, 3], df.iloc[:, 4]
+
+        def find_averages(operation: str) -> int:
+            res = []
+            for difficulty in ("Easy", "Medium", "Hard"):
+                arr = [row.iloc[2]
+                       for index, row in df.iterrows() if row.iloc[0] == operation and row.iloc[1] == difficulty]
+                l = len(arr)
+                res.append(round(sum(arr)/l, 2) if l != 0 else 0)
+            return res
+        average_time_addition = find_averages("Addition")
+        average_time_subtraction = find_averages("Subtraction")
+        average_time_multiplication = find_averages("Multiplication")
+        average_time_division = find_averages("Division")
+        average_times = {"Addition": average_time_addition, "Subtraction": average_time_subtraction,
+                         "Multiplication": average_time_multiplication, "Division": average_time_division}
+
+        def update_graph(event=None):
+            selected_operation = self.combobox.get()
+            ax.clear()
+            averages = average_times[selected_operation]
+            difficulties = ["Easy", "Medium", "Hard"]
+
+            # Create bar graph
+            ax.bar(difficulties, averages, color="skyblue", edgecolor="black")
+            ax.set_title(f"Average Times for {selected_operation}")
+            ax.set_xlabel("Difficulty")
+            ax.set_ylabel("Average Time (seconds)")
+
+            canvas.draw()
+
+        fig = Figure(figsize=(5, 3), dpi=100)
+        ax = fig.add_subplot(111)
+
+        # Combobox for selecting operation
+        self.combobox = ctk.CTkComboBox(
+            self.root, values=self.operations, command=lambda event: update_graph())
+        self.combobox.pack(pady=10)
+
+        # Set up initial canvas
+        canvas = FigureCanvasTkAgg(fig, master=self.root)
+        self.canvas_widget = canvas.get_tk_widget()
+        self.canvas_widget.pack(fill=ctk.BOTH, expand=True)
+
+        self.combobox.set("Addition")
+        update_graph()
 
     def select_difficulty(self, difficulty):
         self.difficulty = difficulty
@@ -109,6 +177,7 @@ class MentalMathApp:
         self.medium_button.grid(row=0, column=1, padx=10)
         self.hard_button.grid(row=0, column=2, padx=10)
         self.change_modes_button.pack(pady=10)
+        self.view_data_button.pack()
         if not self.random_mode:
             self.question_mode_select_box.pack()
 
@@ -118,6 +187,8 @@ class MentalMathApp:
         self.result_label.pack_forget()
         self.time_label.pack_forget()
         self.submit_button.pack_forget()
+        self.canvas_widget.pack_forget()
+        self.combobox.pack_forget()
 
     def start_quiz(self):
         self.score = 0  # Reset score
@@ -131,6 +202,7 @@ class MentalMathApp:
 
         self.change_modes_button.pack_forget()
         self.question_mode_select_box.pack_forget()
+        self.view_data_button.pack_forget()
 
         # Display first question
         self.root.bind("<Return>", self.check_answer)
@@ -175,7 +247,8 @@ class MentalMathApp:
         """Update the time label continuously while answering the question."""
         if not self.answer_checked:
             elapsed_time = round(time.time() - self.start_time, 2)
-            self.time_label.configure(text=f"Time taken: {elapsed_time} seconds")
+            self.time_label.configure(
+                text=f"Time taken: {elapsed_time} seconds")
             self.root.after(100, self.update_time)  # Update every 100ms
 
     def check_answer(self, event=None):
@@ -184,17 +257,26 @@ class MentalMathApp:
         try:
             user_answer = float(user_answer)
             if user_answer == self.answer:
-                self.result_label.configure(text="Correct!", text_color="green")
+                self.result_label.configure(
+                    text="Correct!", text_color="green")
                 self.end_time = time.time()
                 self.time_taken = round(self.end_time - self.start_time, 2)
-                self.time_label.configure(text=f"Time taken: {self.time_taken} seconds")
                 self.score += int(-self.time_taken + 10)
+                self.correct = True
             else:
                 self.result_label.configure(
                     text=f"Wrong! The correct answer was {self.answer}.",
                     text_color="red",
                 )
                 self.score -= 5
+                self.correct = False
+            self.time_label.configure(
+                text=f"Time taken: {self.time_taken} seconds")
+            new_data = [[self.operation[1], self.difficulty,
+                         self.time_taken, self.correct, datetime.now()]]
+            with open("results.csv", mode="a", newline="", encoding="utf-8") as file:
+                writer = csv.writer(file)
+                writer.writerows(new_data)
         except ValueError:
             self.result_label.configure(
                 text="Please enter a valid number.", text_color="red"
