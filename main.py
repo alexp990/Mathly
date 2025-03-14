@@ -130,6 +130,7 @@ class MentalMathApp:
 
         # Count correct answers per day
         daily_corrects = df[df["Correct"] == True].groupby("Date").size()
+        daily_wrongs = df[df["Correct"] == False].groupby("Date").size()
 
         # Create a new figure for correct answers plot
         fig2 = Figure(figsize=(5, 3), dpi=100)
@@ -138,17 +139,18 @@ class MentalMathApp:
         # Plot the number of correct answers per day
         ax2.plot(daily_corrects.index, daily_corrects.values,
                  marker="o", linestyle="-", color="green")
-        ax2.set_title("Number of Correct Answers Per Day")
+        ax2.plot(daily_wrongs.index, daily_wrongs.values,
+                 marker="o", linestyle="-", color="red")
+        ax2.set_title("Number of Correct and Wrong Answers Per Day")
         ax2.set_xlabel("Date")
-        ax2.set_ylabel("Correct Answers")
+        ax2.set_ylabel("Correct/Wrong Answers")
         ax2.grid(True)
 
         # Display the plot
-        canvas2 = FigureCanvasTkAgg(fig2, master=self.root)
-        canvas2_widget = canvas2.get_tk_widget()
-        canvas2_widget.pack(fill=ctk.BOTH, expand=True)
+        self.canvas2 = FigureCanvasTkAgg(fig2, master=self.root)
+        self.canvas2_widget = self.canvas2.get_tk_widget()
+        self.canvas2_widget.pack(fill=ctk.BOTH, expand=True)
 
-        # Call the existing graph update function to display the first graph as well
         self.view_data_avgs()
 
     def view_data_avgs(self):
@@ -243,6 +245,7 @@ class MentalMathApp:
             self.submit_button.pack_forget()
             self.canvas_widget.pack_forget()
             self.combobox.pack_forget()
+            self.canvas2_widget.pack_forget()
         except Exception as e:
             pass
 
