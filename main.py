@@ -67,7 +67,7 @@ class MentalMathApp:
         self.result_label = ctk.CTkLabel(root, text="", font=("Helvetica", 12))
 
         self.time_label = ctk.CTkLabel(
-            root, text="Time taken: ", font=("Helvetica", 12)
+            root, text="Time taken: ", font=("Helvetica", 14)
         )
 
         self.submit_button = ctk.CTkButton(
@@ -95,21 +95,64 @@ class MentalMathApp:
 
         self.operations = ["Addition", "Subtraction",
                            "Division", "Multiplication"]
+
         self.question_mode_select_box = ctk.CTkComboBox(
             root, values=self.operations)
 
         self.root.bind("<Escape>", self.show_start_menu)
 
     def change_modes(self):
+
         self.random_mode = not self.random_mode
+
         if not self.random_mode:
             self.question_mode_select_box.pack()
             self.change_modes_button.configure(text="Specific")
+
         elif self.random_mode:
             self.question_mode_select_box.pack_forget()
             self.change_modes_button.configure(text="Random")
 
     def view_data(self):
+
+        self.change_modes_button.pack_forget()
+        self.question_mode_select_box.pack_forget()
+        self.difficulty_frame.pack_forget()
+        self.view_data_button.pack_forget()
+
+        # Ensure timestamps are parsed
+        df = pd.read_csv("results.csv", parse_dates=[4])
+        df.columns = ["Operation", "Difficulty",
+                      "Time Taken", "Correct", "Timestamp"]
+
+        # Convert timestamps to date only
+        df["Date"] = df["Timestamp"].dt.date
+
+        # Count correct answers per day
+        daily_corrects = df[df["Correct"] == True].groupby("Date").size()
+
+        # Create a new figure for correct answers plot
+        fig2 = Figure(figsize=(5, 3), dpi=100)
+        ax2 = fig2.add_subplot(111)
+
+        # Plot the number of correct answers per day
+        ax2.plot(daily_corrects.index, daily_corrects.values,
+                 marker="o", linestyle="-", color="green")
+        ax2.set_title("Number of Correct Answers Per Day")
+        ax2.set_xlabel("Date")
+        ax2.set_ylabel("Correct Answers")
+        ax2.grid(True)
+
+        # Display the plot
+        canvas2 = FigureCanvasTkAgg(fig2, master=self.root)
+        canvas2_widget = canvas2.get_tk_widget()
+        canvas2_widget.pack(fill=ctk.BOTH, expand=True)
+
+        # Call the existing graph update function to display the first graph as well
+        self.view_data_avgs()
+
+    def view_data_avgs(self):
+
         self.change_modes_button.pack_forget()
         self.question_mode_select_box.pack_forget()
         self.difficulty_frame.pack_forget()
@@ -117,17 +160,24 @@ class MentalMathApp:
 
         df = pd.read_csv("results.csv")
 
-        operations, difficulties, times_taken, corects, times = df.iloc[:,
-                                                                        0], df.iloc[:, 1], df.iloc[:, 2], df.iloc[:, 3], df.iloc[:, 4]
+        operations, difficulties, times_taken, corrects, times = df.iloc[:,
+                                                                         0], df.iloc[:, 1], df.iloc[:, 2], df.iloc[:, 3], df.iloc[:, 4]
 
-        def find_averages(operation: str) -> int:
+        def find_averages(operation: str) -> list:
+
             res = []
+
             for difficulty in ("Easy", "Medium", "Hard"):
+
                 arr = [row.iloc[2]
                        for index, row in df.iterrows() if row.iloc[0] == operation and row.iloc[1] == difficulty]
+
                 l = len(arr)
+
                 res.append(round(sum(arr)/l, 2) if l != 0 else 0)
+
             return res
+
         average_time_addition = find_averages("Addition")
         average_time_subtraction = find_averages("Subtraction")
         average_time_multiplication = find_averages("Multiplication")
@@ -136,12 +186,12 @@ class MentalMathApp:
                          "Multiplication": average_time_multiplication, "Division": average_time_division}
 
         def update_graph(event=None):
+
             selected_operation = self.combobox.get()
             ax.clear()
             averages = average_times[selected_operation]
             difficulties = ["Easy", "Medium", "Hard"]
 
-            # Create bar graph
             ax.bar(difficulties, averages, color="skyblue", edgecolor="black")
             ax.set_title(f"Average Times for {selected_operation}")
             ax.set_xlabel("Difficulty")
@@ -166,11 +216,13 @@ class MentalMathApp:
         update_graph()
 
     def select_difficulty(self, difficulty):
+
         self.difficulty = difficulty
         self.difficulty_frame.pack_forget()
         self.start_quiz()
 
     def show_start_menu(self, event=None):
+
         self.score = 0
         self.difficulty_frame.pack()
         self.easy_button.grid(row=0, column=0, padx=10)
@@ -178,19 +230,24 @@ class MentalMathApp:
         self.hard_button.grid(row=0, column=2, padx=10)
         self.change_modes_button.pack(pady=10)
         self.view_data_button.pack()
+
         if not self.random_mode:
             self.question_mode_select_box.pack()
 
-        self.score_label.pack_forget()
-        self.question_label.pack_forget()
-        self.answer_entry.pack_forget()
-        self.result_label.pack_forget()
-        self.time_label.pack_forget()
-        self.submit_button.pack_forget()
-        self.canvas_widget.pack_forget()
-        self.combobox.pack_forget()
+        try:
+            self.score_label.pack_forget()
+            self.question_label.pack_forget()
+            self.answer_entry.pack_forget()
+            self.result_label.pack_forget()
+            self.time_label.pack_forget()
+            self.submit_button.pack_forget()
+            self.canvas_widget.pack_forget()
+            self.combobox.pack_forget()
+        except Exception as e:
+            pass
 
     def start_quiz(self):
+
         self.score = 0  # Reset score
         self.score_label.configure(text=f"Score: {self.score}")
         self.score_label.pack(pady=10)
@@ -208,9 +265,11 @@ class MentalMathApp:
         self.root.bind("<Return>", self.check_answer)
         self.root.bind("<space>", self.generate_question)
         self.answer_checked = True
+
         self.generate_question()
 
     def generate_question(self, event="Placeholder"):
+
         if self.answer_checked:
             self.start_time = time.time()
             self.answer_entry.delete(0, "end")
@@ -225,6 +284,7 @@ class MentalMathApp:
             ]
             if self.random_mode:
                 self.operation = random.choice(operations)
+
             elif not self.random_mode:
                 user_operation = self.question_mode_select_box.get()
                 symbol = [
@@ -252,6 +312,7 @@ class MentalMathApp:
             self.root.after(100, self.update_time)  # Update every 100ms
 
     def check_answer(self, event=None):
+
         user_answer = self.answer_entry.get()
 
         try:
